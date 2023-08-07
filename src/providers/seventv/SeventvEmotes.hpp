@@ -106,7 +106,8 @@ public:
      */
     static boost::optional<EmotePtr> addEmote(
         Atomic<std::shared_ptr<const EmoteMap>> &map,
-        const seventv::eventapi::EmoteAddDispatch &dispatch);
+        const seventv::eventapi::EmoteAddDispatch &dispatch,
+        SeventvEmoteSetKind kind = SeventvEmoteSetKind::Channel);
 
     /**
      * Updates an emote in this `map`.
@@ -117,7 +118,8 @@ public:
      */
     static boost::optional<EmotePtr> updateEmote(
         Atomic<std::shared_ptr<const EmoteMap>> &map,
-        const seventv::eventapi::EmoteUpdateDispatch &dispatch);
+        const seventv::eventapi::EmoteUpdateDispatch &dispatch,
+        SeventvEmoteSetKind kind = SeventvEmoteSetKind::Channel);
 
     /**
      * Removes an emote from this `map`.

@@ -27,6 +27,8 @@
 #include "providers/seventv/eventapi/Subscription.hpp"
 #include "providers/seventv/SeventvBadges.hpp"
 #include "providers/seventv/SeventvEventAPI.hpp"
+#include "providers/seventv/SeventvPaints.hpp"
+#include "providers/seventv/SeventvPersonalEmotes.hpp"
 #include "providers/twitch/ChannelPointReward.hpp"
 #include "providers/twitch/PubSubActions.hpp"
 #include "providers/twitch/PubSubManager.hpp"
@@ -87,6 +89,8 @@ Application::Application(Settings &_settings, Paths &_paths)
     , chatterinoBadges(&this->emplace<ChatterinoBadges>())
     , ffzBadges(&this->emplace<FfzBadges>())
     , seventvBadges(&this->emplace<SeventvBadges>())
+    , seventvPaints(&this->emplace<SeventvPaints>())
+    , seventvPersonalEmotes(&this->emplace<SeventvPersonalEmotes>())
     , userData(&this->emplace<UserDataController>())
     , sound(&this->emplace<SoundController>())
     , twitchLiveController(&this->emplace<TwitchLiveController>())
@@ -655,30 +659,54 @@ void Application::initSeventvEventAPI()
 
     this->twitch->seventvEventAPI->signals_.emoteAdded.connect(
         [&](const auto &data) {
-            postToThread([this, data] {
-                this->twitch->forEachSeventvEmoteSet(
-                    data.emoteSetID, [data](TwitchChannel &chan) {
-                        chan.addSeventvEmote(data);
-                    });
-            });
+            if (this->seventvPersonalEmotes->hasEmoteSet(data.emoteSetID))
+            {
+                this->seventvPersonalEmotes->updateEmoteSet(data.emoteSetID,
+                                                            data);
+            }
+            else
+            {
+                postToThread([this, data] {
+                    this->twitch->forEachSeventvEmoteSet(
+                        data.emoteSetID, [data](TwitchChannel &chan) {
+                            chan.addSeventvEmote(data);
+                        });
+                });
+            }
         });
     this->twitch->seventvEventAPI->signals_.emoteUpdated.connect(
         [&](const auto &data) {
-            postToThread([this, data] {
-                this->twitch->forEachSeventvEmoteSet(
-                    data.emoteSetID, [data](TwitchChannel &chan) {
-                        chan.updateSeventvEmote(data);
-                    });
-            });
+            if (this->seventvPersonalEmotes->hasEmoteSet(data.emoteSetID))
+            {
+                this->seventvPersonalEmotes->updateEmoteSet(data.emoteSetID,
+                                                            data);
+            }
+            else
+            {
+                postToThread([this, data] {
+                    this->twitch->forEachSeventvEmoteSet(
+                        data.emoteSetID, [data](TwitchChannel &chan) {
+                            chan.updateSeventvEmote(data);
+                        });
+                });
+            }
         });
     this->twitch->seventvEventAPI->signals_.emoteRemoved.connect(
         [&](const auto &data) {
-            postToThread([this, data] {
-                this->twitch->forEachSeventvEmoteSet(
-                    data.emoteSetID, [data](TwitchChannel &chan) {
-                        chan.removeSeventvEmote(data);
-                    });
-            });
+            if (this->seventvPersonalEmotes->hasEmoteSet(data.emoteSetID))
+            {
+                this->seventvPersonalEmotes->updateEmoteSet(data.emoteSetID,
+                                                            data);
+            }
+            else
+            {
+                postToThread([this, data] {
+                    this->twitch->forEachSeventvEmoteSet(
+                        data.emoteSetID, [data](TwitchChannel &chan) {
+                            chan.removeSeventvEmote(data);
+                        });
+                });
+            }
         });
     this->twitch->seventvEventAPI->signals_.userUpdated.connect(
         [&](const auto &data) {
@@ -686,6 +714,19 @@ void Application::initSeventvEventAPI()
                                              [data](TwitchChannel &chan) {
                                                  chan.updateSeventvUser(data);
                                              });
+        });
+    this->twitch->seventvEventAPI->signals_.personalEmoteSetAdded.connect(
+        [&](const auto &data) {
+            postToThread([this, data]() {
+                this->twitch->forEachChannelAndSpecialChannels([=](auto chan) {
+                    if (auto *twitchChannel =
+                            dynamic_cast<TwitchChannel *>(chan.get()))
+                    {
+                        twitchChannel->upsertPersonalSeventvEmotes(data.first,
+                                                                   data.second);
+                    }
+                });
+            });
         });
 
     this->twitch->seventvEventAPI->start();

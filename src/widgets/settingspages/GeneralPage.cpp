@@ -483,7 +483,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     layout.addCheckbox("Enable emote auto-completion by typing :",
                        s.emoteCompletionWithColon);
     layout.addDropdown<float>(
-        "Size", {"0.5x", "0.75x", "Default", "1.25x", "1.5x", "2x"},
+        "Size", {"0.5x", "0.75x", "Default", "1.25x", "1.5x", "2x", "3x", "4x"},
         s.emoteScale,
         [](auto val) {
             if (val == 1)
@@ -558,8 +558,14 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     layout.addCheckbox("Show FFZ channel emotes", s.enableFFZChannelEmotes);
     layout.addCheckbox("Show 7TV global emotes", s.enableSevenTVGlobalEmotes);
     layout.addCheckbox("Show 7TV channel emotes", s.enableSevenTVChannelEmotes);
-    layout.addCheckbox("Enable 7TV live emote updates (requires restart)",
-                       s.enableSevenTVEventAPI);
+    layout.addCheckbox("Show 7TV personal emotes",
+                       s.enableSevenTVPersonalEmotes, false,
+                       "This requires '7TV live updates' to work.");
+    layout.addCheckbox("Enable 7TV live updates (requires restart)",
+                       s.enableSevenTVEventAPI, false,
+                       "When enabled, channel emotes will get updated "
+                       "automatically (no reload required) and cosmetics "
+                       "(badges/paints/personal emotes) will get updated.");
     layout.addCheckbox("Send activity to 7TV", s.sendSevenTVActivity, false,
                        "When enabled, Chatterino will signal an activity to "
                        "7TV when you send a chat mesage. This is used for "
@@ -883,6 +889,8 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     }
 #endif
 
+    layout.addCheckbox("Show 7TV Animated Profile Picture",
+                       s.displaySevenTVAnimatedProfile);
     layout.addCheckbox(
         "Show moderation messages", s.hideModerationActions, true,
         "Show messages for timeouts, bans, and other moderator actions.");
@@ -912,6 +920,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     layout.addCheckbox(
         "Automatically close reply thread popup when it loses focus",
         s.autoCloseThreadPopup);
+    layout.addCheckbox("Display 7TV Paints", s.displaySevenTVPaints);
     layout.addCheckbox("Lowercase domains (anti-phishing)", s.lowercaseDomains,
                        false,
                        "Make all clickable links lowercase to deter "

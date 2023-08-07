@@ -16,6 +16,7 @@
 #include "providers/colors/ColorProvider.hpp"
 #include "providers/ffz/FfzBadges.hpp"
 #include "providers/seventv/SeventvBadges.hpp"
+#include "providers/seventv/SeventvPersonalEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/ChannelPointReward.hpp"
 #include "providers/twitch/PubSubActions.hpp"
@@ -1073,13 +1074,21 @@ Outcome TwitchMessageBuilder::tryAppendEmote(const EmoteName &name)
     bool zeroWidth = false;
 
     // Emote order:
+    //  - 7TV Personal
     //  - FrankerFaceZ Channel
     //  - BetterTTV Channel
     //  - 7TV Channel
     //  - FrankerFaceZ Global
     //  - BetterTTV Global
     //  - 7TV Global
-    if (this->twitchChannel && (emote = this->twitchChannel->ffzEmote(name)))
+    if (this->twitchChannel != nullptr &&
+        (emote =
+             app->seventvPersonalEmotes->getEmoteForUser(this->userId_, name)))
+    {
+        flags = MessageElementFlag::SevenTVEmote;
+    }
+    else if (this->twitchChannel &&
+             (emote = this->twitchChannel->ffzEmote(name)))
     {
         flags = MessageElementFlag::FfzEmote;
     }

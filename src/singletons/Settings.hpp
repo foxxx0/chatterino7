@@ -155,6 +155,7 @@ public:
     BoolSetting enableSmoothScrolling = {"/appearance/smoothScrolling", true};
     BoolSetting enableSmoothScrollingNewMessages = {
         "/appearance/smoothScrollingNewMessages", false};
+    BoolSetting displaySevenTVPaints = {"/misc/displaySevenTVPaints", true};
     BoolSetting boldUsernames = {"/appearance/messages/boldUsernames", true};
     BoolSetting colorUsernames = {"/appearance/messages/colorUsernames", true};
     BoolSetting findAllUsernames = {"/appearance/messages/findAllUsernames",
@@ -254,6 +255,12 @@ public:
     FloatSetting emoteScale = {"/emotes/scale", 1.f};
     BoolSetting showUnlistedSevenTVEmotes = {
         "/emotes/showUnlistedSevenTVEmotes", false};
+    /**
+     * This setting is kept for backwards compatibility.
+     */
+    BoolSetting showUnlistedEmotesDontUse = {"/emotes/showUnlistedEmotes",
+                                             false};
+
     QStringSetting emojiSet = {"/emotes/emojiSet", "Twitter"};
 
     BoolSetting stackBits = {"/emotes/stackBits", false};
@@ -267,6 +274,8 @@ public:
     BoolSetting enableFFZChannelEmotes = {"/emotes/ffz/channel", true};
     BoolSetting enableSevenTVGlobalEmotes = {"/emotes/seventv/global", true};
     BoolSetting enableSevenTVChannelEmotes = {"/emotes/seventv/channel", true};
+    BoolSetting enableSevenTVPersonalEmotes = {"/emotes/seventv/personal",
+                                               true};
     BoolSetting enableSevenTVEventAPI = {"/emotes/seventv/eventapi", true};
     BoolSetting sendSevenTVActivity = {"/emotes/seventv/sendActivity", true};
 
@@ -491,6 +500,8 @@ public:
         "/misc/scrollback/usercardLimit",
         1000,
     };
+    BoolSetting displaySevenTVAnimatedProfile = {
+        "/misc/displaySevenTVAnimatedProfile", true};
 
     // Temporary time-gate-overrides
     EnumSetting<HelixTimegateOverride> helixTimegateRaid = {

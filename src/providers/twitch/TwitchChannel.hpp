@@ -141,6 +141,9 @@ public:
     std::shared_ptr<const EmoteMap> ffzEmotes() const;
     std::shared_ptr<const EmoteMap> seventvEmotes() const;
 
+    const QString &seventvUserId() const;
+    const QString &seventvEmoteSetId() const;
+
     virtual void refreshBTTVChannelEmotes(bool manualRefresh);
     virtual void refreshFFZChannelEmotes(bool manualRefresh);
     virtual void refreshSevenTVChannelEmotes(bool manualRefresh);
@@ -170,6 +173,11 @@ public:
     // Update the channel's 7TV information (the channel's 7TV user ID and emote set ID)
     void updateSeventvData(const QString &newUserID,
                            const QString &newEmoteSetID);
+
+    // Update the user's last message and insert the personal emotes if necessary.
+    void upsertPersonalSeventvEmotes(
+        const QString &userLogin,
+        const std::shared_ptr<const EmoteMap> &emoteMap);
 
     // Badges
     boost::optional<EmotePtr> ffzCustomModBadge() const;

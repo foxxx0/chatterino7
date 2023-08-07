@@ -6,13 +6,15 @@
 #include "providers/seventv/eventapi/Message.hpp"
 #include "providers/seventv/SeventvBadges.hpp"
 #include "providers/seventv/SeventvCosmetics.hpp"
+#include "providers/seventv/SeventvPaints.hpp"
+#include "providers/seventv/SeventvPersonalEmotes.hpp"
+#include "util/PostToThread.hpp"
 
 #include <QJsonArray>
 
 #include <utility>
 
 namespace chatterino {
-
 using namespace seventv;
 using namespace seventv::eventapi;
 
@@ -55,6 +57,10 @@ void SeventvEventAPI::subscribeTwitchChannel(const QString &id)
             ChannelCondition{id},
             SubscriptionType::DeleteEntitlement,
         });
+        this->subscribe({
+            ChannelCondition{id},
+            SubscriptionType::AnyEmoteSet,
+        });
     }
 }
 
@@ -91,6 +97,10 @@ void SeventvEventAPI::unsubscribeTwitchChannel(const QString &id)
         this->unsubscribe({
             ChannelCondition{id},
             SubscriptionType::DeleteEntitlement,
+        });
+        this->unsubscribe({
+            ChannelCondition{id},
+            SubscriptionType::AnyEmoteSet,
         });
     }
 }
@@ -178,6 +188,10 @@ void SeventvEventAPI::handleDispatch(const Dispatch &dispatch)
 {
     switch (dispatch.type)
     {
+        case SubscriptionType::CreateEmoteSet: {
+            this->onEmoteSetCreate(dispatch);
+        }
+        break;
         case SubscriptionType::UpdateEmoteSet: {
             this->onEmoteSetUpdate(dispatch);
         }
@@ -344,16 +358,18 @@ void SeventvEventAPI::onUserUpdate(const Dispatch &dispatch)
 }
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
-
 void SeventvEventAPI::onCosmeticCreate(const CosmeticCreateDispatch &cosmetic)
 {
     // We're using `Application::instance` instead of getApp(), because we're not in the GUI thread.
-    // `seventvBadges` does its own locking.
-    auto *badges = Application::instance->seventvBadges;
+    // `seventvBadges` and `seventvPaints` do their own locking.
     switch (cosmetic.kind)
     {
         case CosmeticKind::Badge: {
-            badges->registerBadge(cosmetic.data);
+            Application::instance->seventvBadges->registerBadge(cosmetic.data);
+        }
+        break;
+        case CosmeticKind::Paint: {
+            Application::instance->seventvPaints->addPaint(cosmetic.data);
         }
         break;
         default:
@@ -365,13 +381,27 @@ void SeventvEventAPI::onEntitlementCreate(
     const EntitlementCreateDeleteDispatch &entitlement)
 {
     // We're using `Application::instance` instead of getApp(), because we're not in the GUI thread.
-    // `seventvBadges` does its own locking.
-    auto *badges = Application::instance->seventvBadges;
+    // `seventvBadges` and `seventvPaints` do their own locking.
     switch (entitlement.kind)
     {
         case CosmeticKind::Badge: {
-            badges->assignBadgeToUser(entitlement.refID,
-                                      UserId{entitlement.userID});
+            Application::instance->seventvBadges->assignBadgeToUser(
+                entitlement.refID, UserId{entitlement.userID});
+        }
+        break;
+        case CosmeticKind::Paint: {
+            Application::instance->seventvPaints->assignPaintToUser(
+                entitlement.refID, UserName{entitlement.userName});
+        }
+        break;
+        case CosmeticKind::EmoteSet: {
+            if (auto set = Application::instance->seventvPersonalEmotes
+                               ->assignUserToEmoteSet(entitlement.refID,
+                                                      entitlement.userID))
+            {
+                this->signals_.personalEmoteSetAdded.invoke(
+                    {entitlement.userName, *set});
+            }
         }
         break;
         default:
@@ -383,17 +413,40 @@ void SeventvEventAPI::onEntitlementDelete(
     const EntitlementCreateDeleteDispatch &entitlement)
 {
     // We're using `Application::instance` instead of getApp(), because we're not in the GUI thread.
-    // `seventvBadges` does its own locking.
-    auto *badges = Application::instance->seventvBadges;
+    // `seventvBadges` and `seventvPaints` do their own locking.
     switch (entitlement.kind)
     {
         case CosmeticKind::Badge: {
-            badges->clearBadgeFromUser(entitlement.refID,
-                                       UserId{entitlement.userID});
+            Application::instance->seventvBadges->clearBadgeFromUser(
+                entitlement.refID, UserId{entitlement.userID});
+        }
+        break;
+        case CosmeticKind::Paint: {
+            Application::instance->seventvPaints->clearPaintFromUser(
+                entitlement.refID, UserName{entitlement.userName});
         }
         break;
         default:
             break;
+    }
+}
+
+void SeventvEventAPI::onEmoteSetCreate(const Dispatch &dispatch)
+{
+    // We're using `Application::instance` instead of getApp(), because we're not in the GUI thread.
+    // `seventvBadges` and `seventvPaints` do their own locking.
+    EmoteSetCreateDispatch createDispatch(dispatch.body["object"].toObject());
+    if (!createDispatch.validate())
+    {
+        qCDebug(chatterinoSeventvEventAPI)
+            << "Invalid dispatch" << dispatch.body;
+        return;
+    }
+
+    if (createDispatch.isPersonal)
+    {
+        Application::instance->seventvPersonalEmotes->createEmoteSet(
+            createDispatch.emoteSetID);
     }
 }
 // NOLINTEND(readability-convert-member-functions-to-static)

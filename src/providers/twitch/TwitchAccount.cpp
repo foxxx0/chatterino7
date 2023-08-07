@@ -13,6 +13,8 @@
 #include "providers/irc/IrcMessageBuilder.hpp"
 #include "providers/IvrApi.hpp"
 #include "providers/seventv/SeventvAPI.hpp"
+#include "providers/seventv/SeventvEmotes.hpp"
+#include "providers/seventv/SeventvPersonalEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/TwitchCommon.hpp"
 #include "singletons/Emotes.hpp"
@@ -462,14 +464,49 @@ void TwitchAccount::loadSeventvUserID()
         return;
     }
 
+    const auto loadPersonalEmotes = [](const QString &twitchUserID,
+                                       const QString &emoteSetID) {
+        SeventvEmotes::getEmoteSet(
+            emoteSetID,
+            [twitchUserID, emoteSetID](auto &&emoteMap,
+                                       const auto & /*emoteSetName*/) {
+                Application::instance->seventvPersonalEmotes
+                    ->addEmoteSetForUser(
+                        emoteSetID, std::forward<decltype(emoteMap)>(emoteMap),
+                        twitchUserID);
+            },
+            [twitchUserID, emoteSetID](const auto &error) {
+                qCDebug(chatterinoSeventv)
+                    << "Failed to fetch personal emote-set. emote-set-id:"
+                    << emoteSetID << "twitch-user-id" << twitchUserID
+                    << "error:" << error;
+            });
+    };
+
     getSeventvAPI().getUserByTwitchID(
         this->getUserId(),
-        [this](const auto &json) {
-            const auto id = json["user"]["id"].toString();
-            if (!id.isEmpty())
+        [this, loadPersonalEmotes](const auto &json) {
+            const auto user = json["user"].toObject();
+            const auto id = user["id"].toString();
+            if (id.isEmpty())
             {
-                this->seventvUserID_ = id;
+                return Success;
             }
+            this->seventvUserID_ = id;
+
+            for (const auto &emoteSetJson : user["emote_sets"].toArray())
+            {
+                const auto emoteSet = emoteSetJson.toObject();
+                if (SeventvEmoteSetFlags(
+                        SeventvEmoteSetFlag(emoteSet["flags"].toInt()))
+                        .has(SeventvEmoteSetFlag::Personal))
+                {
+                    loadPersonalEmotes(this->getUserId(),
+                                       emoteSet["id"].toString());
+                    break;
+                }
+            }
+
             return Success;
         },
         [](const auto &result) {

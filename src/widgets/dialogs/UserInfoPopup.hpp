@@ -1,9 +1,12 @@
 #pragma once
 
+#include "singletons/Paths.hpp"
+#include "widgets/BaseWindow.hpp"
 #include "widgets/DraggablePopup.hpp"
 
 #include <pajlada/signals/scoped-connection.hpp>
 #include <pajlada/signals/signal.hpp>
+#include <QMovie>
 
 #include <chrono>
 
@@ -11,11 +14,15 @@ class QCheckBox;
 
 namespace chatterino {
 
+inline static const QString SEVENTV_USER_API =
+    "https://7tv.io/v3/users/twitch/%1";
+
 class Channel;
 using ChannelPtr = std::shared_ptr<Channel>;
 class Label;
 class ChannelView;
 class Split;
+class HelixUser;
 
 class UserInfoPopup final : public DraggablePopup
 {
@@ -38,7 +45,15 @@ private:
     void updateUserData();
     void updateLatestMessages();
 
-    void loadAvatar(const QUrl &url);
+    void loadAvatar(const HelixUser &user);
+
+    void loadSevenTVAvatar(const HelixUser &user);
+    void setSevenTVAvatar(const QString &filename);
+
+    bool avatarDestroyed;
+
+    void saveCacheAvatar(const QByteArray &avatar, const QString &filename);
+
     bool isMod_;
     bool isBroadcaster_;
 

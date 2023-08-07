@@ -6,6 +6,7 @@
 #include "providers/bttv/BttvEmotes.hpp"
 #include "providers/ffz/FfzEmotes.hpp"
 #include "providers/seventv/SeventvEmotes.hpp"
+#include "providers/seventv/SeventvPersonalEmotes.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
@@ -81,6 +82,13 @@ std::vector<CompletionEmote> buildCompletionEmoteList(const QString &text,
 
         if (tc)
         {
+            if (const auto map =
+                    getApp()->seventvPersonalEmotes->getEmoteSetForUser(
+                        getApp()->accounts->twitch.getCurrent()->getUserId()))
+            {
+                addEmotes(emotes, *map.get(), text, "Personal 7TV");
+            }
+
             // TODO extract "Channel {BetterTTV,7TV,FrankerFaceZ}" text into a #define.
             if (auto bttv = tc->bttvEmotes())
             {

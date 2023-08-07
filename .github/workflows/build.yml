@@ -4,7 +4,7 @@ name: Build
 on:
   push:
     branches:
-      - master
+      - chatterino7
   pull_request:
   workflow_dispatch:
   merge_group:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  C2_ENABLE_LTO: ${{ github.ref == 'refs/heads/master' }}
+  C2_ENABLE_LTO: ${{ github.ref == 'refs/heads/chatterino7' }}
   CHATTERINO_REQUIRE_CLEAN_GIT: On
   C2_BUILD_WITH_QT6: Off
   # Last known good conan version
@@ -35,14 +35,6 @@ jobs:
         skip-crashpad: [false]
         clang-tidy-review: [false]
         include:
-          # Ubuntu 20.04, Qt 5.12
-          - os: ubuntu-20.04
-            qt-version: 5.12.12
-            force-lto: false
-            plugins: false
-            skip-artifact: false
-            skip-crashpad: false
-            clang-tidy-review: false
           # Ubuntu 22.04, Qt 5.15
           - os: ubuntu-22.04
             qt-version: 5.15.2
@@ -185,8 +177,8 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         shell: pwsh
         env:
-          # Enable PCH on Windows when crashpad is enabled
-          C2_WINDOWS_USE_PCH: ${{ matrix.skip-crashpad && 'OFF' || 'ON' }}
+          # Always enable PCH on Windows
+          C2_WINDOWS_USE_PCH: "ON"
         run: |
           cd build
           cmake `
@@ -322,7 +314,7 @@ jobs:
         uses: ZedThree/clang-tidy-review/upload@v0.13.2
 
       - name: Package - AppImage (Ubuntu)
-        if: startsWith(matrix.os, 'ubuntu-20.04') && !matrix.skip-artifact
+        if: startsWith(matrix.os, 'ubuntu-22.04') && !matrix.skip-artifact
         run: |
           cd build
           sh ./../.CI/CreateAppImage.sh
@@ -336,7 +328,7 @@ jobs:
         shell: bash
 
       - name: Upload artifact - AppImage (Ubuntu)
-        if: startsWith(matrix.os, 'ubuntu-20.04') && !matrix.skip-artifact
+        if: startsWith(matrix.os, 'ubuntu-22.04') && !matrix.skip-artifact
         uses: actions/upload-artifact@v3
         with:
           name: Chatterino-x86_64-${{ matrix.qt-version }}.AppImage
@@ -395,7 +387,7 @@ jobs:
   create-release:
     needs: build
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/chatterino7')
 
     steps:
       - uses: actions/checkout@v3
@@ -433,15 +425,9 @@ jobs:
           path: release-artifacts/
 
       - uses: actions/download-artifact@v3
-        name: Linux Qt5.12.12 AppImage
+        name: Linux Qt5.15.2 AppImage
         with:
-          name: Chatterino-x86_64-5.12.12.AppImage
-          path: release-artifacts/
-
-      - uses: actions/download-artifact@v3
-        name: Ubuntu 20.04 Qt5.12.12 deb
-        with:
-          name: Chatterino-ubuntu-20.04-Qt-5.12.12.deb
+          name: Chatterino-x86_64-5.15.2.AppImage
           path: release-artifacts/
 
       - uses: actions/download-artifact@v3
@@ -455,11 +441,6 @@ jobs:
         with:
           name: chatterino-macos-Qt-5.15.2.dmg
           path: release-artifacts/
-
-      - name: Copy flatpakref
-        run: |
-          cp .CI/chatterino-nightly.flatpakref release-artifacts/
-        shell: bash
 
       - name: Rename artifacts
         run: |

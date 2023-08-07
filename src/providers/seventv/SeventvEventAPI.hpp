@@ -20,6 +20,8 @@ namespace seventv::eventapi {
 }  // namespace seventv::eventapi
 
 class SeventvBadges;
+class SeventvPaints;
+class EmoteMap;
 
 class SeventvEventAPI
     : public BasicPubSubManager<seventv::eventapi::Subscription>
@@ -38,6 +40,8 @@ public:
         Signal<seventv::eventapi::EmoteUpdateDispatch> emoteUpdated;
         Signal<seventv::eventapi::EmoteRemoveDispatch> emoteRemoved;
         Signal<seventv::eventapi::UserConnectionUpdateDispatch> userUpdated;
+        Signal<std::pair<QString, std::shared_ptr<const EmoteMap>>>
+            personalEmoteSetAdded;
     } signals_;  // NOLINT(readability-identifier-naming)
 
     /**
@@ -83,6 +87,7 @@ private:
         const seventv::eventapi::EntitlementCreateDeleteDispatch &entitlement);
     void onEntitlementDelete(
         const seventv::eventapi::EntitlementCreateDeleteDispatch &entitlement);
+    void onEmoteSetCreate(const seventv::eventapi::Dispatch &dispatch);
 
     /** emote-set ids */
     std::unordered_set<QString> subscribedEmoteSets_;
